@@ -31,7 +31,7 @@ class _ProdScannerWidgetState extends State<ProdScannerWidget> {
   @override
   void reassemble() {
     super.reassemble();
-    if (controller != null) {
+    if (controller != null && mounted) {
       controller!.pauseCamera();
       controller!.resumeCamera();
     }
@@ -59,26 +59,42 @@ class _ProdScannerWidgetState extends State<ProdScannerWidget> {
   void _onQRViewCreated(QRViewController controller) {
     this.controller = controller;
     controller.scannedDataStream.listen((scanData) {
-      // Distinguish between different types of codes
-      switch (scanData.format) {
-        case BarcodeFormat.qrcode:
-          // Handle QR Code
-          print("Scanned QR Code: ${scanData.code}");
-          break;
-        case BarcodeFormat.ean8:
-        case BarcodeFormat.ean13:
-        case BarcodeFormat.upcA:
-        case BarcodeFormat.upcE:
-          // Handle Barcodes
-          print("Scanned Barcode: ${scanData.code}");
-          break;
-        default:
-          // Handle other formats or unknown format
-          print("Scanned Other/Unknown Format: ${scanData.code}");
-          break;
+      print(
+          "Scanned data received: ${scanData.code}"); // Verbose output for debugging
+      if (scanData.code != null) {
+        print("Code scanned: ${scanData.code}"); // Confirm code is scanned
+        _showScanResult(scanData.code); // Show the dialog with the scan result
       }
-      // Implement additional actions based on the scanned code here
+    }, onError: (error) {
+      print("Error occurred while scanning: $error");
     });
+  }
+
+  void _showScanResult(String? barcode) {
+    if (barcode == null) {
+      print("Barcode is null, no action taken.");
+      return; // Exit the function if barcode is null
+    }
+    if (!mounted) {
+      print("Widget not mounted, cannot show dialog.");
+      return;
+    }
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Scan Result'),
+          content: Text(
+              'Your product code $barcode has successfully been stored as a variable!'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () => Navigator.of(context).pop(), // Close the dialog
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
