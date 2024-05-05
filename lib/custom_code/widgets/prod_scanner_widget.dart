@@ -6,8 +6,6 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-/// Automatic FlutterFlow imports
-
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 
 class ProdScannerWidget extends StatefulWidget {
@@ -27,6 +25,8 @@ class ProdScannerWidget extends StatefulWidget {
 class _ProdScannerWidgetState extends State<ProdScannerWidget> {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   QRViewController? controller;
+  bool isDialogShowing =
+      false; // Flag to check if the dialog is currently shown
 
   @override
   void reassemble() {
@@ -59,9 +59,9 @@ class _ProdScannerWidgetState extends State<ProdScannerWidget> {
   void _onQRViewCreated(QRViewController controller) {
     this.controller = controller;
     controller.scannedDataStream.listen((scanData) {
-      print(
-          "Scanned data received: ${scanData.code}"); // Verbose output for debugging
-      if (scanData.code != null) {
+      if (scanData.code != null && !isDialogShowing) {
+        // Check if dialog is not already shown
+        controller.pauseCamera(); // Pause the camera when a barcode is scanned
         print("Code scanned: ${scanData.code}"); // Confirm code is scanned
         _showScanResult(scanData.code); // Show the dialog with the scan result
       }
@@ -75,10 +75,7 @@ class _ProdScannerWidgetState extends State<ProdScannerWidget> {
       print("Barcode is null, no action taken.");
       return; // Exit the function if barcode is null
     }
-    if (!mounted) {
-      print("Widget not mounted, cannot show dialog.");
-      return;
-    }
+    isDialogShowing = true; // Set flag to true when dialog is being shown
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -89,7 +86,12 @@ class _ProdScannerWidgetState extends State<ProdScannerWidget> {
           actions: <Widget>[
             TextButton(
               child: const Text('OK'),
-              onPressed: () => Navigator.of(context).pop(), // Close the dialog
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+                isDialogShowing = false; // Reset flag when dialog is closed
+                controller
+                    ?.resumeCamera(); // Resume camera after the dialog is closed
+              },
             ),
           ],
         );
